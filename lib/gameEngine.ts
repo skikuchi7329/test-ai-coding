@@ -34,18 +34,23 @@ function gaussianRandom(): number {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-/** 期待値と分散から実際の収支を計算 */
+/** 期待値と分散から実際の収支を計算
+ *
+ * 実際のパチスロの収支分布を模倣:
+ *   - 1日打っても設定6で期待値+数千円、σ±2〜3万円が現実
+ *   - stdDev = volatility × 8000円 × sqrt(セッション時間/1h)
+ *   - ハイエナ(2h,vol=2.5): σ≈¥28000, EV≈¥4000 → 約42%で負け
+ *   - 設定6(4h,vol=1.5): σ≈¥24000, EV≈¥3000 → 約45%で負け
+ *   - 低設定(4h,vol=1.3): σ≈¥21000, EV≈-¥2000 → 約54%で負け
+ */
 function simulateProfit(
   trueEV: number,
   volatility: number,
   estimatedMinutes: number
 ): number {
-  // 時給換算EV -> セッション期待値
   const sessionEV = (trueEV * estimatedMinutes) / 60;
-  // 標準偏差 = volatility * sqrt(投資額近似)
-  const stdDev = volatility * Math.sqrt(Math.abs(sessionEV) * 50) * 1.5;
+  const stdDev = volatility * 8000 * Math.sqrt(estimatedMinutes / 60);
   const profit = sessionEV + gaussianRandom() * stdDev;
-  // 500円単位に丸める
   return Math.round(profit / 500) * 500;
 }
 
@@ -70,8 +75,8 @@ function calcPerceivedEV(
 }
 
 export function generateMachines(skill: Skill, day: number): Machine[] {
-  // 日が進むほど良台が出やすくなる演出
-  const dayBonus = Math.min(day * 50, 500);
+  // 日が進むほど微妙に良台が出やすくなる演出（現実的なスケールに合わせて小さめ）
+  const dayBonus = Math.min(day * 10, 100);
   const count = 4 + Math.floor(Math.random() * 3);
   const shuffled = [...MACHINE_TEMPLATES].sort(() => Math.random() - 0.5);
 
@@ -438,19 +443,25 @@ export function endDay(state: GameState): GameState {
     ? [...state.dayLogs, state.currentDayLog]
     : state.dayLogs;
 
+  const updatedPlayer = { ...state.player, daysPassed: state.player.daysPassed + 1 };
+
   // ゲームオーバー / クリア判定
   if (state.player.money <= DEFAULT_CONFIG.gameOverThreshold) {
-    return { ...state, phase: "game_over", activeEffects: updatedEffects, dayLogs: logs };
+    return { ...state, phase: "game_over", activeEffects: updatedEffects, dayLogs: logs, currentDayLog: null };
   }
   if (newDay > DEFAULT_CONFIG.totalDays) {
-    return { ...state, phase: "game_clear", activeEffects: updatedEffects, dayLogs: logs };
+    return { ...state, phase: "game_clear", activeEffects: updatedEffects, dayLogs: logs, currentDayLog: null };
   }
 
+  // phase を day_start に戻す。currentDayLog をクリアしないと
+  // DayEndPanel がそのまま残ってボタンが二重クリック可能になる
   return {
     ...state,
+    phase: "day_start",
     currentDay: newDay,
+    currentDayLog: null,
     activeEffects: updatedEffects,
     dayLogs: logs,
-    player: { ...state.player, daysPassed: state.player.daysPassed + 1 },
+    player: updatedPlayer,
   };
 }
