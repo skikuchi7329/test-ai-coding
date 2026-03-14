@@ -60,75 +60,102 @@ export function getSkillConfig(skill: SkillConfig["level"]): SkillConfig {
 // ============================================================
 // Machine Templates
 // ============================================================
+// trueEV: 円/時 (時給期待値)。実際のパチスロに近い値に設定。
+//   - 良質なハイエナ: +1500〜+3000/h, セッション2h → +3000〜+6000期待値
+//   - 設定6:          +500〜+900/h,  セッション4h → +2000〜+3600期待値
+//   - 設定4〜5:       +100〜+400/h,  微妙なプラス or ほぼ±0
+//   - 低設定/ハズレ台: −400〜−800/h, 負けが基本
+// volatility: 高いほど荒波（実際のAT機は2.0〜3.0が現実的）
+// estimatedMinutes: timeCost に合わせて ハイエナ=120, 設定狙い=240
 export const MACHINE_TEMPLATES: Omit<Machine, "id" | "perceivedEV" | "identificationProgress">[] = [
   {
-    name: "バジリスク絆2 (天井狙い)",
+    name: "バジリスク絆2 (天井残り90G)",
     type: "highEV_ceiling",
-    trueEV: 4800,
+    trueEV: 2500,   // +¥5000/session期待値 (2h)
     setting: 1,
     gameCount: 890,
     gamesUntilCeiling: 90,
-    volatility: 1.4,
+    volatility: 2.5, // σ≈¥28000 → 約42%で負けるリアルな荒波
     estimatedMinutes: 120,
   },
   {
-    name: "スマスロ北斗 (ゾーン狙い)",
+    name: "スマスロ北斗 (ゾーン残り30G)",
     type: "highEV_zone",
-    trueEV: 3200,
+    trueEV: 1500,   // +¥3000/session期待値 (2h)
     setting: 1,
     gameCount: 380,
     gamesUntilCeiling: null,
-    volatility: 1.2,
-    estimatedMinutes: 90,
+    volatility: 2.2, // σ≈¥24000
+    estimatedMinutes: 120,
   },
   {
-    name: "ハナハナ (設定6狙い)",
+    name: "ハナハナ (設定6確定)",
     type: "setting_hunt",
-    trueEV: 6500,
+    trueEV: 800,    // +¥3200/session期待値 (4h)
     setting: 6,
     gameCount: 200,
     gamesUntilCeiling: null,
-    volatility: 0.9,
-    estimatedMinutes: 180,
+    volatility: 1.5, // σ≈¥24000 → 約45%で負け（設定6でも半分近く負ける）
+    estimatedMinutes: 240,
   },
   {
     name: "ジャグラー (設定5狙い)",
     type: "setting_hunt",
-    trueEV: 3800,
+    trueEV: 400,    // +¥1600/session期待値 (4h)
     setting: 5,
     gameCount: 500,
     gamesUntilCeiling: null,
-    volatility: 0.8,
-    estimatedMinutes: 150,
+    volatility: 1.3, // σ≈¥21000 → 約47%で負け
+    estimatedMinutes: 240,
   },
   {
-    name: "マイジャグ (設定判別中)",
+    name: "マイジャグ (設定不明)",
     type: "setting_hunt",
-    trueEV: 1200,
+    trueEV: -400,   // 実は低設定: -¥1600/session期待値 (4h)
     setting: 3,
     gameCount: 300,
     gamesUntilCeiling: null,
-    volatility: 0.85,
-    estimatedMinutes: 120,
+    volatility: 1.3, // σ≈¥21000 → 約53%で負け（マイナスEV）
+    estimatedMinutes: 240,
   },
   {
-    name: "Lエヴァ (天井ハイエナ)",
+    name: "Lエヴァ (天井残り40G)",
     type: "highEV_ceiling",
-    trueEV: 5500,
+    trueEV: 3000,   // +¥6000/session期待値 (2h), 近天井で高EV
     setting: 1,
     gameCount: 950,
     gamesUntilCeiling: 40,
-    volatility: 1.6,
-    estimatedMinutes: 60,
+    volatility: 3.0, // σ≈¥34000 → 約43%で負け、当たると大きい
+    estimatedMinutes: 120,
   },
   {
-    name: "お宝台 (謎の高期待値台)",
+    name: "凱旋 (天井残り200G)",
+    type: "highEV_ceiling",
+    trueEV: 800,    // +¥1600/session期待値 (2h), 遠い天井でEV低め
+    setting: 1,
+    gameCount: 750,
+    gamesUntilCeiling: 200,
+    volatility: 2.8, // 荒波: 当たれば大勝ち、外れれば轟沈
+    estimatedMinutes: 120,
+  },
+  {
+    name: "適当打ち台 (低設定疑惑)",
+    type: "setting_hunt",
+    trueEV: -700,   // 低設定: -¥2800/session期待値 (4h)
+    setting: 2,
+    gameCount: 400,
+    gamesUntilCeiling: null,
+    volatility: 1.4, // σ≈¥22000 → 約55%で負け
+    estimatedMinutes: 240,
+  },
+  {
+    name: "お宝台 (朝から高設定確定)",
     type: "spot",
-    trueEV: 9000,
+    trueEV: 4000,   // +¥16000/session期待値 (4h), 超優良台
     setting: 6,
     gameCount: 700,
     gamesUntilCeiling: null,
-    volatility: 2.0,
+    volatility: 2.0, // σ≈¥32000 → 約31%で負けるがEV高い
     estimatedMinutes: 240,
   },
 ];

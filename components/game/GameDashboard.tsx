@@ -147,19 +147,12 @@ export default function GameDashboard() {
           />
         )}
 
-        {state.phase === "day_end" && state.lastResult && state.currentDayLog && (
-          <>
-            <ResultPanel
-              result={state.lastResult}
-              onContinue={() => {}}
-              isDayEnd={true}
-            />
-            <DayEndPanel
-              dayLog={state.currentDayLog}
-              money={state.player.money}
-              onNextDay={() => dispatch({ type: "NEXT_DAY" })}
-            />
-          </>
+        {state.phase === "day_end" && state.currentDayLog && (
+          <DayEndPanel
+            dayLog={state.currentDayLog}
+            money={state.player.money}
+            onNextDay={() => dispatch({ type: "NEXT_DAY" })}
+          />
         )}
       </div>
     </div>
