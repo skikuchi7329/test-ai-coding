@@ -12,6 +12,7 @@ import type {
   Skill,
   ActiveEffect,
   DayLog,
+  HistoryEntry,
 } from "@/types/game";
 import {
   DEFAULT_CONFIG,
@@ -324,6 +325,7 @@ export function initGameState(): GameState {
     actionsToday: 0,
     maxActionsPerDay: DEFAULT_CONFIG.maxActionsPerDay,
     remainingTime: DEFAULT_CONFIG.timeUnitsPerDay,
+    history: [],
   };
 }
 
@@ -418,6 +420,23 @@ export function applyActionResult(
     ? generateActions(newMachines, newEffects)
     : state.availableActions;
 
+  // 日終了時にグラフ用履歴を追記
+  let newHistory = state.history;
+  if (dayDone) {
+    const allActions = updatedDayLog?.actions ?? [];
+    const dailyEV = allActions.reduce((sum, a) => sum + a.varianceBreakdown.baseEV, 0);
+    const dailyProfit = updatedDayLog?.netProfit ?? 0;
+    const prev = state.history[state.history.length - 1];
+    const entry: HistoryEntry = {
+      day: state.currentDay,
+      dailyEV,
+      dailyProfit,
+      cumulativeEV: (prev?.cumulativeEV ?? 0) + dailyEV,
+      cumulativeProfit: (prev?.cumulativeProfit ?? 0) + dailyProfit,
+    };
+    newHistory = [...state.history, entry];
+  }
+
   return {
     ...state,
     player: updatedPlayer,
@@ -429,6 +448,7 @@ export function applyActionResult(
     availableMachines: newMachines,
     availableActions: newActions,
     currentDayLog: updatedDayLog,
+    history: newHistory,
     phase: dayDone ? "day_end" : "result",
   };
 }

@@ -151,6 +151,7 @@ export default function GameDashboard() {
           <DayEndPanel
             dayLog={state.currentDayLog}
             money={state.player.money}
+            history={state.history}
             onNextDay={() => dispatch({ type: "NEXT_DAY" })}
           />
         )}
