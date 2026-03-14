@@ -64,8 +64,10 @@ export interface Action {
   riskLevel: "low" | "medium" | "high";
   /** 期待収支 (プレイヤーが判断に使う) */
   expectedValue: number;
-  /** 所要時間 (分) */
+  /** 所要時間 (分) - 表示用 */
   timeRequired: number;
+  /** 消費タイムユニット数 (0=スキップで全消費) */
+  timeCost: number;
 }
 
 // --- Action Result ---
@@ -167,10 +169,12 @@ export interface GameState {
   dayLogs: DayLog[];
   currentDayLog: DayLog | null;
   skillXP: number;
-  /** 当日すでに行動した回数 */
+  /** 当日すでに行動した回数 (表示用) */
   actionsToday: number;
-  /** 1日の最大行動数 */
+  /** 1日の最大行動数 (レガシー互換) */
   maxActionsPerDay: number;
+  /** 残りタイムユニット (1日12ユニット = 10:00〜22:00) */
+  remainingTime: number;
 }
 
 // --- Config ---
@@ -180,4 +184,5 @@ export interface GameConfig {
   totalDays: number;
   maxActionsPerDay: number;
   gameOverThreshold: number;   // この金額以下でゲームオーバー
+  timeUnitsPerDay: number;     // 1日のタイムユニット数
 }

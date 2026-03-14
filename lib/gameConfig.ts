@@ -5,7 +5,15 @@ export const DEFAULT_CONFIG: GameConfig = {
   totalDays: 30,
   maxActionsPerDay: 3,
   gameOverThreshold: 10_000,
+  timeUnitsPerDay: 12, // 10:00〜22:00 の12ユニット
 };
+
+/** タイムユニットを時刻文字列に変換 (例: 0→"10:00", 6→"16:00") */
+export function timeUnitToLabel(remainingUnits: number): string {
+  const elapsed = DEFAULT_CONFIG.timeUnitsPerDay - remainingUnits;
+  const hour = 10 + elapsed;
+  return `${hour}:00`;
+}
 
 // ============================================================
 // Skill Progression Table

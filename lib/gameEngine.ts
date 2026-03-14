@@ -102,6 +102,7 @@ export function generateActions(
 
   const actions: Action[] = machines.map((m) => {
     const isSettingHunt = m.type === "setting_hunt";
+    const timeCost = isSettingHunt ? 4 : 2;
     return {
       type: isSettingHunt ? "setting_hunt" : "hyena",
       label: isSettingHunt ? `【設定狙い】${m.name}` : `【ハイエナ】${m.name}`,
@@ -112,17 +113,30 @@ export function generateActions(
       riskLevel: m.volatility < 1.0 ? "low" : m.volatility < 1.5 ? "medium" : "high",
       expectedValue: Math.round(m.perceivedEV * evMultiplier * (m.estimatedMinutes / 60)),
       timeRequired: m.estimatedMinutes,
+      timeCost,
     };
   });
 
-  // 「スキップ」は常に選択肢として存在
+  // 「店移動」: 台リストをリフレッシュ、1ユニット消費
   actions.push({
-    type: "skip",
-    label: "【スキップ】今日は見送る",
-    description: "無理に打たず軍資金を守る。収支は0。スキルEXP +10。",
+    type: "move",
+    label: "【店移動】別のホールへ移動する",
+    description: "期待値の低い店から脱出。新しい台リストに更新する。1ユニット消費。",
     riskLevel: "low",
     expectedValue: 0,
     timeRequired: 0,
+    timeCost: 1,
+  });
+
+  // 「スキップ」: 残り時間をすべて消費して日を終了
+  actions.push({
+    type: "skip",
+    label: "【終日スキップ】今日の稼働を終了する",
+    description: "残り時間をすべて使い、今日の稼働を切り上げる。スキルEXP +10。",
+    riskLevel: "low",
+    expectedValue: 0,
+    timeRequired: 0,
+    timeCost: 0, // エンジン側で remainingTime 全消費
   });
 
   return actions;
@@ -169,7 +183,7 @@ export function executeAction(
   const messages: string[] = [];
 
   if (action.type === "skip") {
-    messages.push("今日は見送りました。軍資金を守ることも立派な判断です。");
+    messages.push("今日の稼働を切り上げました。軍資金を守ることも立派な判断です。");
     return {
       action,
       actualProfit: 0,
@@ -177,6 +191,18 @@ export function executeAction(
       events: [],
       messages,
       xpGained: 10,
+    };
+  }
+
+  if (action.type === "move") {
+    messages.push("🚶 別のホールへ移動しました。新しい台を確認しています…");
+    return {
+      action,
+      actualProfit: 0,
+      varianceBreakdown: { baseEV: 0, randomVariance: 0, eventBonus: 0 },
+      events: [],
+      messages,
+      xpGained: 5,
     };
   }
 
@@ -292,6 +318,7 @@ export function initGameState(): GameState {
     skillXP: 0,
     actionsToday: 0,
     maxActionsPerDay: DEFAULT_CONFIG.maxActionsPerDay,
+    remainingTime: DEFAULT_CONFIG.timeUnitsPerDay,
   };
 }
 
@@ -313,6 +340,7 @@ export function startDay(state: GameState): GameState {
     availableActions: actions,
     currentDayLog: dayLog,
     actionsToday: 0,
+    remainingTime: DEFAULT_CONFIG.timeUnitsPerDay,
     lastResult: null,
   };
 }
@@ -369,7 +397,21 @@ export function applyActionResult(
     : null!;
 
   const actionsToday = state.actionsToday + 1;
-  const dayDone = actionsToday >= state.maxActionsPerDay;
+
+  // 時間消費: skip は残り時間を全部使い切る、それ以外は timeCost 分消費
+  const consumed = result.action.type === "skip"
+    ? state.remainingTime
+    : result.action.timeCost;
+  const remainingTime = Math.max(0, state.remainingTime - consumed);
+  const dayDone = remainingTime <= 0;
+
+  // 店移動の場合は台リストをリフレッシュ
+  const newMachines = result.action.type === "move"
+    ? generateMachines(updatedPlayer.skill, state.currentDay)
+    : state.availableMachines;
+  const newActions = result.action.type === "move"
+    ? generateActions(newMachines, newEffects)
+    : state.availableActions;
 
   return {
     ...state,
@@ -378,6 +420,9 @@ export function applyActionResult(
     activeEffects: newEffects,
     skillXP: newXP,
     actionsToday,
+    remainingTime,
+    availableMachines: newMachines,
+    availableActions: newActions,
     currentDayLog: updatedDayLog,
     phase: dayDone ? "day_end" : "result",
   };

@@ -1,14 +1,19 @@
 "use client";
 import type { GameState } from "@/types/game";
-import { getSkillConfig } from "@/lib/gameConfig";
-import { DEFAULT_CONFIG } from "@/lib/gameConfig";
+import { getSkillConfig, DEFAULT_CONFIG, timeUnitToLabel } from "@/lib/gameConfig";
 
 interface Props {
   state: GameState;
 }
 
 export default function StatusBar({ state }: Props) {
-  const { player, currentDay, skillXP, activeEffects } = state;
+  const { player, currentDay, skillXP, activeEffects, remainingTime } = state;
+  const totalTime = DEFAULT_CONFIG.timeUnitsPerDay;
+  const timeRatio = remainingTime / totalTime;
+  const timeColor =
+    timeRatio > 0.5 ? "bg-teal-500" :
+    timeRatio > 0.25 ? "bg-yellow-500" : "bg-red-500";
+  const currentTimeLabel = timeUnitToLabel(remainingTime);
   const skillCfg = getSkillConfig(player.skill);
   const nextSkill = ["novice", "intermediate", "expert", "pro"];
   const nextIdx = nextSkill.indexOf(player.skill) + 1;
@@ -29,7 +34,7 @@ export default function StatusBar({ state }: Props) {
 
   return (
     <div className="bg-gray-900 border-b border-gray-700 px-4 py-3">
-      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-4">
 
         {/* 軍資金 */}
         <div className="bg-gray-800 rounded-lg p-3">
@@ -69,6 +74,32 @@ export default function StatusBar({ state }: Props) {
               />
             </div>
             <span className="text-xs text-gray-400">{skillXP}xp</span>
+          </div>
+        </div>
+
+        {/* 残り時間 */}
+        <div className="bg-gray-800 rounded-lg p-3">
+          <div className="text-xs text-gray-400 mb-1">🕐 残り時間</div>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-xl font-bold font-mono ${
+              timeRatio > 0.5 ? "text-teal-400" :
+              timeRatio > 0.25 ? "text-yellow-300" : "text-red-400"
+            }`}>
+              {remainingTime}
+            </span>
+            <span className="text-gray-500 text-sm">/ {totalTime} ユニット</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1">
+            <div className="flex-1 bg-gray-700 rounded-full h-1.5">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-500 ${timeColor}`}
+                style={{ width: `${timeRatio * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500">{currentTimeLabel}</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            ハイエナ2U / 設定4U / 移動1U
           </div>
         </div>
 

@@ -34,7 +34,12 @@ function gameReducer(state: GameState, event: GameAction): GameState {
       return startDay(state);
     case "SELECT_ACTION": {
       const result = executeAction(state, event.action);
-      return applyActionResult(state, result);
+      const next = applyActionResult(state, result);
+      // 店移動は結果画面を挟まず即行動画面に戻す
+      if (event.action.type === "move" && next.phase !== "day_end") {
+        return { ...next, phase: "action", lastResult: null };
+      }
+      return next;
     }
     case "CONTINUE_AFTER_RESULT":
       return { ...state, phase: "action" };
@@ -71,9 +76,11 @@ export default function GameDashboard() {
             ハイエナと設定狙いを駆使して、プロへの道を歩め。
           </p>
           <div className="bg-gray-800 rounded-xl p-4 mb-8 text-left text-sm text-gray-300 space-y-2">
-            <div>⚡ <strong className="text-white">ハイエナ</strong>: 天井・ゾーン狙いで安定収益</div>
-            <div>🎯 <strong className="text-white">設定狙い</strong>: 高設定を見極めて大勝ち</div>
-            <div>🏃 <strong className="text-white">スキップ</strong>: 無理せず軍資金を守る</div>
+            <div>⚡ <strong className="text-white">ハイエナ</strong>: 天井・ゾーン狙いで安定収益 <span className="text-teal-400">(-2U)</span></div>
+            <div>🎯 <strong className="text-white">設定狙い</strong>: 高設定を見極めて大勝ち <span className="text-teal-400">(-4U)</span></div>
+            <div>🚶 <strong className="text-white">店移動</strong>: 台リストをリフレッシュ <span className="text-teal-400">(-1U)</span></div>
+            <div>🏁 <strong className="text-white">終日スキップ</strong>: 今日の稼働を終了する</div>
+            <div className="text-gray-500 pt-1">1日12ユニット（10:00〜22:00）。0になったら強制終了。</div>
             <div>⚠️ 軍資金が ¥10,000 以下でゲームオーバー</div>
           </div>
           <button
@@ -127,6 +134,7 @@ export default function GameDashboard() {
             actions={state.availableActions}
             actionsToday={state.actionsToday}
             maxActions={state.maxActionsPerDay}
+            remainingTime={state.remainingTime}
             onSelect={handleSelectAction}
           />
         )}
