@@ -125,6 +125,20 @@ export interface ActiveEffect {
   remainingDays: number;
 }
 
+// --- History (グラフ用) ---
+
+export interface HistoryEntry {
+  day: number;
+  /** その日の合計期待値 (行動の baseEV 合計) */
+  dailyEV: number;
+  /** その日の実収支 */
+  dailyProfit: number;
+  /** 累計期待値 (Day1からの積算) */
+  cumulativeEV: number;
+  /** 累計実収支 (Day1からの積算) */
+  cumulativeProfit: number;
+}
+
 // --- Day Log ---
 
 export interface DayLog {
@@ -175,6 +189,8 @@ export interface GameState {
   maxActionsPerDay: number;
   /** 残りタイムユニット (1日12ユニット = 10:00〜22:00) */
   remainingTime: number;
+  /** グラフ用: 日次の期待値/実収支履歴 */
+  history: HistoryEntry[];
 }
 
 // --- Config ---
